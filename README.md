@@ -7,3 +7,6 @@ STL manipulation with hands via camera
 - PyQT5
 - VTK
 - Vedo
+
+## Check out Vedo:
+https://github.com/marcomusy/vedo
