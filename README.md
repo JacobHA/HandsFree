@@ -12,3 +12,9 @@ STL manipulation with hands via camera
 These codebases power the bulk of this project.
 - https://github.com/marcomusy/vedo
 - https://google.github.io/mediapipe/
+
+
+# TODO:
+- Create an executable file
+- Clean up PyQT applications
+- 
