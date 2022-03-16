@@ -8,5 +8,7 @@ STL manipulation with hands via camera
 - VTK
 - Vedo
 
-## Check out Vedo:
-https://github.com/marcomusy/vedo
+## Check out Vedo + MediaPipe:
+These codebases power the bulk of this project.
+- https://github.com/marcomusy/vedo
+- https://google.github.io/mediapipe/
