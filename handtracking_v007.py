@@ -34,7 +34,7 @@ ZOOM_SENSITIVITY = 0.1 # effectively how many loop iterations must be done (i.e.
 INITIAL_RESCALE = 0.00001
 
 
-SHOW_SELFIE = False
+SHOW_SELFIE = True
 
 dimensions = 3
 
@@ -65,9 +65,7 @@ last_two_thumb_index_dists = MaxSizeList(2)
 
 z_unit_vec = np.array([0,0,1])
 
-STL_name = r'C:\Users\jacob\Downloads\croc-nut20210722-6981-17x5gmo\rayandsumer\croc-nut\cn1.stl'
-STL_name = r'C:\Users\jacob\OneDrive\Desktop\3D Print files\cars\mate fixed.stl'
-
+STL_name = r'A.stl'
 
 v = Mesh(STL_name)
 
@@ -108,9 +106,9 @@ try:
             results = hands.process(image)
         
             # Draw the hand annotations on the image.
-            image.flags.writeable = False # Performance improvement
+            # image.flags.writeable = False # Performance improvement
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            image.flags.writeable = False
+            # image.flags.writeable = False
             display_message = "" # So as not to overcrowd with box behind
 
             multihand_results = results.multi_hand_landmarks
@@ -269,13 +267,14 @@ try:
                 index_positions = MaxSizeList(MAX_TRACKING_TIME)
                 
                 pause_updates = True
-                
+            
             # Show vtk file and camera's image
             if pause_updates:
                 display_message = "Updates paused"
 
             if SHOW_SELFIE:
                 cv2.imshow('MediaPipe', image)
+                cv2.waitKey(1)
 
             status_message.text(display_message)
             plt.show(v, status_message, zoom = new_zoom, camera = cam, interactive=False) # important line!           
