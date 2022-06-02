@@ -34,9 +34,15 @@ RESET_WAITING_FRAMES = 20
 EPSILON_NOISE = 1E-3
 FINGER_TOUCHING_RADIUS = 0.07
 ZOOM_THRESHOLD = 0 #5E-4
+ZOOM_EPSILON = 0.005
+ZOOM_HARDNESS = 10
+
 ROTATION_SENSITIVITY = 1000
 ROTATION_EPSILON = 5e-3
 ROTATION_HARDNESS = 4
+
+PANNING_EPSILON = 0.05
+PANNING_HARDNESS = 1
 PANNING_SENSITIVITY = 2
 PANNING_Z_SENSITIVITY = 1.5
 ZOOM_SENSITIVITY = 0.1 # effectively how many loop iterations must be done (i.e. ms waited) to acheive zoom factor
@@ -198,7 +204,7 @@ try:
 
                 open_status.append(hand_open(middle_finger_open_list, MIN_WAITING_FRAMES))
 
-                if len(last_two_thumbs) >= MIN_WAITING_FRAMES:
+                if len(last_two_thumbs) >= MIN_WAITING_FRAMES and len(last_two_indexes) > 0:
                     display_message = f"Tracking Both Hands"
 
                     # generate/grab the last two smoothed points
@@ -228,16 +234,27 @@ try:
             
                     if hand_status == ['Both']*MIN_WAITING_FRAMES and open_status[-1] and len(last_two_indexes_L) > 1:
                         
-                        display_message = "Panning"
-                        # Pan camera
+                        display_message = "Panning & Zooming"
                         
-                        # TODO: change this difference logic:
-                        indexes = np.mean([np.array(last_two_indexes_L), np.array(last_two_indexes_R)], axis=0)
-                        change = indexes[1] - indexes[0]
+                        left_change = np.array(last_two_indexes_L[1]) - np.array(last_two_indexes_L[0])
+                        right_change = np.array(last_two_indexes_R[1]) - np.array(last_two_indexes_R[0])
+
+                        change = np.mean([left_change, right_change], axis=0)
                         change = np.array([0, change[0], -PANNING_Z_SENSITIVITY * change[1]])
                         # index_change[2] = 0 # set z-axis change to zero            
                         # First check that fingers are not closed: i.e. that we do not want any action
+                        change *= sigmoid(change, threshold=PANNING_EPSILON, hardness=PANNING_HARDNESS)
                         v.shift(PANNING_SENSITIVITY * change)
+                        # Also use both hands to zoom:
+                        xy_change=(left_change[0:1] - right_change[0:1]).sum()
+
+                        print(xy_change)
+                        xy_change = xy_change * sigmoid(xy_change, threshold = ZOOM_EPSILON, hardness=ZOOM_HARDNESS)
+                        zoom_factor = (1 - xy_change) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
+                        new_zoom = new_zoom * zoom_factor
+                        v.scale(new_zoom)
+                        
+
                        
                     if hand_status == ['Right']*MIN_WAITING_FRAMES and open_status[-1] and len(last_two_thumb_index_dists) > 1:
 
