@@ -29,7 +29,7 @@ EPSILON_NOISE = 1E-3
 FINGER_TOUCHING_RADIUS = 0.07
 ZOOM_THRESHOLD = 0 #5E-4
 ROTATION_SENSITIVITY = 10
-PANNING_SENSITIVITY = 4
+PANNING_SENSITIVITY = 2
 PANNING_Z_SENSITIVITY = 1.5
 ZOOM_SENSITIVITY = 0.1 # effectively how many loop iterations must be done (i.e. ms waited) to acheive zoom factor
 INITIAL_RESCALE = 0.00001
@@ -52,7 +52,7 @@ last_two_positions = MaxSizeList(2 * 3) # NUM_FINGERS_NEEDED * NUM_DIMENSIONS
 last_two_thumb_index_vecs = MaxSizeList(2)
 last_two_thumb_index_dists = MaxSizeList(2)
 
-def camera_loop(cap, hands, hand_status, thumb_positions, index_positions, middle_tip_vert_positions, middle_palm_vert_positions, middle_finger_open_list, last_two_positions):
+def camera_loop(cap, hands, hand_status, thumb_positions,index_positions,middle_tip_vert_positions, middle_palm_vert_positions, middle_finger_open_list, last_two_positions):
 
     pause_updates = False
     new_zoom, old_zoom = 1,1

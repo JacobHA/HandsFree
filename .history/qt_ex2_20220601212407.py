@@ -29,9 +29,9 @@ EPSILON_NOISE = 1E-3
 FINGER_TOUCHING_RADIUS = 0.07
 ZOOM_THRESHOLD = 0 #5E-4
 ROTATION_SENSITIVITY = 10
-PANNING_SENSITIVITY = 4
+PANNING_SENSITIVITY = 2
 PANNING_Z_SENSITIVITY = 1.5
-ZOOM_SENSITIVITY = 0.1 # effectively how many loop iterations must be done (i.e. ms waited) to acheive zoom factor
+ZOOM_SENSITIVITY = 0.2 # effectively how many loop iterations must be done (i.e. ms waited) to acheive zoom factor
 INITIAL_RESCALE = 0.00001
 
 mp_drawing = mp.solutions.drawing_utils
