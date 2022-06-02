@@ -2,8 +2,14 @@
 """
 Created on Mon Aug  2 00:20:41 2021
 
-@author: jacob
+@author: Jacob Adamczyk
+
+To Zoom: Pinch fingers (right hand)
+To Rotate: Set up an axis with first finger and thumb (left hand)
+To Pan: Raise both hands, and move one (left/right has reversed controls)
 """
+
+print(__doc__)
 
 import cv2
 import mediapipe as mp
@@ -14,7 +20,7 @@ from google.protobuf.json_format import MessageToDict
 import numpy as np
 from utils import *
 
-MEMORY_DEBUG = False
+MEMORY_DEBUG = True
 
 THUMB_TIP_INDEX = 4
 INDEX_TIP_INDEX = 8
@@ -34,7 +40,7 @@ ZOOM_SENSITIVITY = 0.1 # effectively how many loop iterations must be done (i.e.
 INITIAL_RESCALE = 0.00001
 
 
-SHOW_SELFIE = False#True
+SHOW_SELFIE = True#False
 
 dimensions = 3
 
@@ -106,9 +112,9 @@ try:
             results = hands.process(image)
         
             # Draw the hand annotations on the image.
-            # image.flags.writeable = False # Performance improvement
+            image.flags.writeable = False # Performance improvement
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            # image.flags.writeable = False
+            image.flags.writeable = False
             display_message = "" # So as not to overcrowd with box behind
 
             multihand_results = results.multi_hand_landmarks
@@ -156,6 +162,7 @@ try:
                     # If sufficient data has been collected:
                     display_message = "Tracking hand"
 
+
                 if NUM_HANDS_PRESENT == 2:
                     hand_status.append('Both') 
 
@@ -176,10 +183,20 @@ try:
                             hand_landmarks.landmark[tip_index].y,
                             hand_landmarks.landmark[tip_index].z,
                             ])
+                        # Gather palm location data
+                        for tip_index, finger_positions_list in zip([ MIDDLE_TIP_INDEX,          MIDDLE_PALM_INDEX],
+                                                                    [ middle_tip_vert_positions, middle_palm_vert_positions]):
+                    
+                            finger_positions_list.append([
+                                hand_landmarks.landmark[tip_index].y,
+                                ]) # only care about y position for these landmarks
 
+                    middle_finger_open_list.append(middle_tip_vert_positions[-1] < middle_palm_vert_positions[-1])
+                    # This will tell us if the hand is open or closed ^
+
+                open_status.append(hand_open(middle_finger_open_list, MIN_WAITING_FRAMES))
 
                 if len(last_two_thumbs) >= MIN_WAITING_FRAMES:
-                    open_status.append(hand_open(middle_finger_open_list, MIN_WAITING_FRAMES))
 
                     # generate/grab the last two smoothed points
                     # for finger_positions_list, last_two in zip([thumb_positions, index_positions, middle_positions],
@@ -225,10 +242,10 @@ try:
                         
                         indexes = np.array(last_two_indexes_L) - np.array(last_two_indexes_R)
                         change = indexes[1] - indexes[0]
-                        change = np.array([change[2], change[0], -PANNING_Z_SENSITIVITY * change[1]])
+                        change = np.array([0, change[0], -PANNING_Z_SENSITIVITY * change[1]])
                         # index_change[2] = 0 # set z-axis change to zero            
                         # First check that fingers are not closed: i.e. that we do not want any action
-                        v.shift(0.1*PANNING_SENSITIVITY * change)
+                        v.shift(PANNING_SENSITIVITY * change)
                        
                     if hand_status == ['Right']*MIN_WAITING_FRAMES and open_status[-1]:
 
@@ -259,6 +276,7 @@ try:
                         
                         cam = dict(pos=(1,0,0), focalPoint=(0,0,0), viewup=(0,0,1))
                         plt = show(v, status_message, axes=4, viewup='z', camera=cam, interactive=False)
+                        
 
         
 
@@ -275,11 +293,11 @@ try:
             if SHOW_SELFIE:
                 cv2.imshow('MediaPipe', image)
                 cv2.waitKey(1)
+            del image # this cuts down on memory by a lot; ~1200KB -> ~200KB !
 
             status_message.text(display_message)
             plt.show(v, status_message, zoom = new_zoom, camera = cam, interactive=False) # important line!           
-            del image # this cuts down on memory by a lot; ~1200KB -> ~200KB !
-    
+
             if MEMORY_DEBUG:
                 snapshot = tracemalloc.take_snapshot()
                 display_top(snapshot) 

@@ -19,3 +19,5 @@ These codebases power the bulk of this project.
 - Clean up PyQT applications
 - Ask user which camera
 - Create a default settings file for QT app
+- Slice the object (for cross sectional views)
+- Interact with CAD files
