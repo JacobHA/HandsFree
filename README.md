@@ -17,4 +17,5 @@ These codebases power the bulk of this project.
 # TODO:
 - Create an executable file
 - Clean up PyQT applications
-- 
+- Ask user which camera
+- Create a default settings file for QT app
