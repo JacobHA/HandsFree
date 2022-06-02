@@ -266,7 +266,7 @@ try:
                         # Apply a dampening factor so that small changes don't cause the camera to spin too fast:
                         angle_to_rotate = angle_to_rotate*sigmoid(angle_to_rotate, threshold = ROTATION_EPSILON, hardness=ROTATION_HARDNESS)
 
-                        v.rotate(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate, point=v.pos())#[::-1]) #bc of axis weirdness
+                        v.rotate(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate, point=v.centerOfMass())# v.pos())#[::-1]) #bc of axis weirdness
 
                     if open_status == [False]*RESET_WAITING_FRAMES:
                         display_message = "Resetting"
