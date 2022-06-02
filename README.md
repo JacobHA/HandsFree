@@ -1,6 +1,9 @@
 # HandsFree
 STL manipulation with hands via camera
 
+A simple demo:
+[gif of demo][HandsFree-demo.gif]
+
 # Dependencies
 - Mayavi
 - MediaPipe

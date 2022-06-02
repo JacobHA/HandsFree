@@ -177,7 +177,6 @@ try:
                             # drawing_styles.get_default_hand_connection_style())
                         # Gather finger location data
                         tip_index = INDEX_TIP_INDEX
-                        finger_poss = []
                          
                                                                                         
                         # Need 3D to pan into/out of page..
@@ -227,8 +226,8 @@ try:
                     # ^^ Instead of this just do live-time averaging... result += thumb_to_index
                     # result /= 2
             
-                    if hand_status == ['Both']*MIN_WAITING_FRAMES and open_status[-1]:
-
+                    if hand_status == ['Both']*MIN_WAITING_FRAMES and open_status[-1] and len(last_two_indexes_L) > 1:
+                        
                         display_message = "Panning"
                         # Pan camera
                         
@@ -240,7 +239,7 @@ try:
                         # First check that fingers are not closed: i.e. that we do not want any action
                         v.shift(PANNING_SENSITIVITY * change)
                        
-                    if hand_status == ['Right']*MIN_WAITING_FRAMES and open_status[-1]:
+                    if hand_status == ['Right']*MIN_WAITING_FRAMES and open_status[-1] and len(last_two_thumb_index_dists) > 1:
 
                         # Change zoom multiplier based on fingers distance changing (open/close thumb and index)
                         display_message = "Zooming"
@@ -249,7 +248,7 @@ try:
                
                         v.scale(new_zoom)
 
-                    if hand_status == ['Left']*MIN_WAITING_FRAMES and open_status[-1]:
+                    if hand_status == ['Left']*MIN_WAITING_FRAMES and open_status[-1] and len(last_two_indexes) > 1:
 
                         # Calculate rotation matrix and extract angles
 
