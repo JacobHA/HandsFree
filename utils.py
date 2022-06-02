@@ -100,3 +100,6 @@ def is_touching(distance, threshold):
 
 def hand_open(open_tracking_list, wait_time):
     return open_tracking_list == [True]*wait_time
+
+def sigmoid(x, hardness=1, threshold=0):
+    return 1 / (1 + np.exp(-hardness*(x-threshold)))

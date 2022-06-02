@@ -20,12 +20,13 @@ from google.protobuf.json_format import MessageToDict
 import numpy as np
 from utils import *
 
-MEMORY_DEBUG = True
+MEMORY_DEBUG = False
 
 THUMB_TIP_INDEX = 4
 INDEX_TIP_INDEX = 8
 MIDDLE_TIP_INDEX = 12 
 MIDDLE_PALM_INDEX = 9
+
 MAX_TRACKING_TIME = 50
 SMOOTHING_INTERVAL = 10
 MIN_WAITING_FRAMES = 2
@@ -33,7 +34,9 @@ RESET_WAITING_FRAMES = 20
 EPSILON_NOISE = 1E-3
 FINGER_TOUCHING_RADIUS = 0.07
 ZOOM_THRESHOLD = 0 #5E-4
-ROTATION_SENSITIVITY = 10
+ROTATION_SENSITIVITY = 1000
+ROTATION_EPSILON = 5e-3
+ROTATION_HARDNESS = 4
 PANNING_SENSITIVITY = 2
 PANNING_Z_SENSITIVITY = 1.5
 ZOOM_SENSITIVITY = 0.1 # effectively how many loop iterations must be done (i.e. ms waited) to acheive zoom factor
@@ -57,19 +60,20 @@ middle_finger_open_list = MaxSizeList(MIN_WAITING_FRAMES)
 hand_status = MaxSizeList(MIN_WAITING_FRAMES)
 open_status = MaxSizeList(RESET_WAITING_FRAMES)
 
-last_two_positions = MaxSizeList(2 * 3) # NUM_FINGERS_NEEDED * NUM_DIMENSIONS
-last_two_thumbs = MaxSizeList(2)
-last_two_indexes = MaxSizeList(2)
+last_two_positions = MaxSizeList(MIN_WAITING_FRAMES * 3) # NUM_FINGERS_NEEDED * NUM_DIMENSIONS
+last_two_thumbs = MaxSizeList(MIN_WAITING_FRAMES)
+last_two_indexes = MaxSizeList(MIN_WAITING_FRAMES)
 # When two hands must be tracked
-last_two_indexes_L = MaxSizeList(2)
-last_two_indexes_R = MaxSizeList(2)
+last_two_indexes_L = MaxSizeList(MIN_WAITING_FRAMES)
+last_two_indexes_R = MaxSizeList(MIN_WAITING_FRAMES)
 
-last_two_middles = MaxSizeList(2)
+last_two_middles = MaxSizeList(MIN_WAITING_FRAMES)
 
-last_two_thumb_index_vecs = MaxSizeList(2)
-last_two_thumb_index_dists = MaxSizeList(2)
+last_two_thumb_index_vecs = MaxSizeList(MIN_WAITING_FRAMES)
+last_two_thumb_index_dists = MaxSizeList(MIN_WAITING_FRAMES)
 
-z_unit_vec = np.array([0,0,1])
+y_unit_vec = np.array([0, 1, 0])
+z_unit_vec = np.array([0, 0, 1])
 
 STL_name = r'A.stl'
 
@@ -77,15 +81,14 @@ v = Mesh(STL_name)
 
 avg_model_size = v.averageSize()
 v.scale(avg_model_size * INITIAL_RESCALE)
-# print(avg_model_size)
-# v.scale(0.001)
+
 cam = dict(pos=(1,0,0), focalPoint=(0,0,0), viewup=(0,0,1))
 
 
 image = None
 display_message = "Firing up..."   
 status_message = Text2D(display_message, pos="top-center", font=2, c='w', bg='b3', alpha=1)
-# axs = Axes(xrange=(-1,1), yrange=(-1,1), zrange=(-1,2), yzGrid=False)
+
 plt = show(v, status_message, axes=4, viewup='z', camera=cam, interactive=False)
 
 if MEMORY_DEBUG:
@@ -94,7 +97,7 @@ if MEMORY_DEBUG:
 try:        
     cap = cv2.VideoCapture(0)
 
-    with mp_hands.Hands(min_detection_confidence=0.85, min_tracking_confidence=0.85, max_num_hands=2) as hands:
+    with mp_hands.Hands(min_detection_confidence=0.9, min_tracking_confidence=0.9, max_num_hands=2) as hands:
         while cap.isOpened():
 
             pause_updates = False
@@ -129,7 +132,7 @@ try:
                 if NUM_HANDS_PRESENT == 1:
                     hand_status.append(hand_present) 
               
-                    # save on memory by only iterating thru what we care about
+                    # save on memory by only iterating thru only what we care about
                     for hand_landmarks in multihand_results: # [multihand_results[val] for val in landmark_index_nums]:
                         # Draw landmarks 
                         mp_drawing.draw_landmarks(
@@ -160,7 +163,7 @@ try:
                     # This will tell us if the hand is open or closed ^
 
                     # If sufficient data has been collected:
-                    display_message = "Tracking hand"
+                    display_message = f"Tracking {hand_present} Hand"
 
 
                 if NUM_HANDS_PRESENT == 2:
@@ -197,6 +200,7 @@ try:
                 open_status.append(hand_open(middle_finger_open_list, MIN_WAITING_FRAMES))
 
                 if len(last_two_thumbs) >= MIN_WAITING_FRAMES:
+                    display_message = f"Tracking Both Hands"
 
                     # generate/grab the last two smoothed points
                     # for finger_positions_list, last_two in zip([thumb_positions, index_positions, middle_positions],
@@ -210,22 +214,10 @@ try:
                     thumb_pos = np.array(last_two_thumbs).mean(axis=0)
                     middle_pos = np.array(last_two_middles).mean(axis=0)
 
-                    # Create AOR in xy plane based of thumb-index line and rotate based on distance bw fingers
-                    last_two_thumb_index_vecs = MaxSizeList(2)
-                    last_two_thumb_index_dists = MaxSizeList(2)
-
-                    norms = MaxSizeList(2)
-
-                    # First check that fingers are not closed: i.e. that we do not want any action
-                    # fingers_touching = within_volume_of([pointA, pointB, pointC], FINGER_TOUCHING_RADIUS)
-                    # if NUM_HANDS_PRESENT == 2:
-                    #     pause_updates = True
-
-
+                   
                     # find the vector between two points
                     thumb_to_index = index_pos - thumb_pos
                     thumb_to_middle = middle_pos - thumb_pos
-                    norms = np.cross(thumb_to_middle, thumb_to_index)
                     
                     # Optionally do masking here... it helps prevent the distance from being changed by z coord
                     # thumb_to_index[-1] = 0 # set z coord to zero
@@ -240,7 +232,8 @@ try:
                         display_message = "Panning"
                         # Pan camera
                         
-                        indexes = np.array(last_two_indexes_L) - np.array(last_two_indexes_R)
+                        # TODO: change this difference logic:
+                        indexes = np.mean([np.array(last_two_indexes_L), np.array(last_two_indexes_R)], axis=0)
                         change = indexes[1] - indexes[0]
                         change = np.array([0, change[0], -PANNING_Z_SENSITIVITY * change[1]])
                         # index_change[2] = 0 # set z-axis change to zero            
@@ -254,6 +247,7 @@ try:
         
                         new_zoom *= ((1 + (last_two_thumb_index_dists[1] - last_two_thumb_index_dists[0]))) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
                
+                        v.scale(new_zoom)
 
                     if hand_status == ['Left']*MIN_WAITING_FRAMES and open_status[-1]:
 
@@ -261,10 +255,18 @@ try:
 
                         display_message = "Rotating"
 
-                        normal_to_rotate = norms # np.cross(np.average(last_two_thumb_index_vecs,axis=0), z_unit_vec) # always crossing it into the screen..check sign later
-                        angle_to_rotate = (last_two_thumb_index_dists).mean()
+                        indexes = np.array(last_two_indexes)# - np.array(last_two_indexes_R)
 
-                        v.rotate(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate)#[::-1]) #bc of axis weirdness
+                        change_vector = indexes[1] - indexes[0]
+                        normal_to_rotate = change_vector[1] * y_unit_vec + change_vector[0] * z_unit_vec
+                        # normal_to_rotate = np.cross(thumb_to_middle, thumb_to_index)
+                        # np.cross(np.average(last_two_thumb_index_vecs,axis=0), z_unit_vec) # always crossing it into the screen..check sign later
+                        # angle_to_rotate = (last_two_thumb_index_dists).mean()
+                        angle_to_rotate = np.linalg.norm(change_vector)
+                        # Apply a dampening factor so that small changes don't cause the camera to spin too fast:
+                        angle_to_rotate = angle_to_rotate*sigmoid(angle_to_rotate, threshold = ROTATION_EPSILON, hardness=ROTATION_HARDNESS)
+
+                        v.rotate(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate, point=v.pos())#[::-1]) #bc of axis weirdness
 
                     if open_status == [False]*RESET_WAITING_FRAMES:
                         display_message = "Resetting"
@@ -281,9 +283,14 @@ try:
         
 
             else: # i.e. no hands detected
-                thumb_positions = MaxSizeList(MAX_TRACKING_TIME) 
-                index_positions = MaxSizeList(MAX_TRACKING_TIME)
-                
+                # CLear out the lists. This saves on memory and more importantly, 
+                # does not reference old positions when a hand re-appears
+                last_two_indexes_L.clear()
+                last_two_indexes_R.clear()
+                thumb_positions.clear() 
+                index_positions.clear()
+                last_two_indexes.clear()
+                new_zoom = 1
                 pause_updates = True
             
             # Show vtk file and camera's image
@@ -296,7 +303,7 @@ try:
             del image # this cuts down on memory by a lot; ~1200KB -> ~200KB !
 
             status_message.text(display_message)
-            plt.show(v, status_message, zoom = new_zoom, camera = cam, interactive=False) # important line!           
+            plt.show(v, status_message, camera = cam, interactive=False) # important line!           
 
             if MEMORY_DEBUG:
                 snapshot = tracemalloc.take_snapshot()
