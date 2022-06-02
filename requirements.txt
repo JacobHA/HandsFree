@@ -1,0 +1,8 @@
+numpy == 1.19.3
+vedo == 2022.2.0
+vtk == 9.0.3
+mediapipe == 0.8.3
+opencv-python == 3.4.2.17
+PyQt5 == 5.15.4
+PyQt5-sip == 12.9.0
+PyQt5-Qt5 == 5.15.2
