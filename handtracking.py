@@ -100,14 +100,16 @@ plt = show(v, status_message, axes=4, viewup='z', camera=cam, interactive=False)
 if MEMORY_DEBUG:
     tracemalloc.start()
 
+camera_index = read_index('camera_index.txt')
+
 try:        
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(camera_index)
 
     with mp_hands.Hands(min_detection_confidence=0.9, min_tracking_confidence=0.9, max_num_hands=2) as hands:
         while cap.isOpened():
 
             pause_updates = False
-            new_zoom, old_zoom = 1,1
+            zoom = 1
 
             success, image = cap.read()
             if not success:
@@ -254,8 +256,8 @@ try:
                         print(xy_change)
                         xy_change = xy_change * sigmoid(xy_change, threshold = ZOOM_EPSILON, hardness=ZOOM_HARDNESS)
                         zoom_factor = (1 + xy_change) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
-                        new_zoom = new_zoom * zoom_factor
-                        v.scale(new_zoom)
+                        zoom = zoom * zoom_factor
+                        v.scale(zoom)
                         
 
                        
@@ -264,9 +266,9 @@ try:
                         # Change zoom multiplier based on fingers distance changing (open/close thumb and index)
                         display_message = "Zooming"
         
-                        new_zoom *= ((1 + (last_two_thumb_index_dists[1] - last_two_thumb_index_dists[0]))) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
+                        zoom *= ((1 + (last_two_thumb_index_dists[1] - last_two_thumb_index_dists[0]))) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
                
-                        v.scale(new_zoom)
+                        v.scale(zoom)
 
                     if hand_status == ['Left']*MIN_WAITING_FRAMES and open_status[-1] and len(last_two_indexes) > 1:
 
@@ -309,8 +311,7 @@ try:
                 thumb_positions.clear() 
                 index_positions.clear()
                 last_two_indexes.clear()
-                # new_zoom = 1
-                # Do not reset this^ b
+                
                 pause_updates = True
             
             # Show vtk file and camera's image
