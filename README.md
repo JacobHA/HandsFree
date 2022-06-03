@@ -20,10 +20,10 @@ These codebases power the bulk of this project.
 
 # TODO:
 - Much refactoring + cleanup needed
-- - Separate the functions for zoom / pan / rotate / etc.
-- - Add a smoothing function
-- - Fix the MIN_WAITING_FRAMES
-- - Track both left and right hand openness separately
+    - Separate the functions for zoom / pan / rotate / etc.
+    - Add a smoothing function
+    - Fix the MIN_WAITING_FRAMES
+    - Track both left and right hand openness separately
 - Add keyboard interaction
 - Add voice interaction
 - Create a dependency graph for the project. (At least a requirements.txt file)
