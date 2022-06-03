@@ -19,6 +19,13 @@ These codebases power the bulk of this project.
 -- MediaPipe was created by Google. Its main purpose is to perform pose estimation (hand, face, body, etc.) and process them with a set of computer vision algorithms. One great application of this is to detect hand gestures (there are several cool projects using it to "read" sign language).
 
 # TODO:
+- Much refactoring + cleanup needed
+- - Separate the functions for zoom / pan / rotate / etc.
+- - Add a smoothing function
+- - Fix the MIN_WAITING_FRAMES
+- - Track both left and right hand openness separately
+- Add keyboard interaction
+- Add voice interaction
 - Create a dependency graph for the project. (At least a requirements.txt file)
 - Create an executable file
 - Clean up PyQT applications

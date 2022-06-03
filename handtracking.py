@@ -34,15 +34,15 @@ RESET_WAITING_FRAMES = 20
 EPSILON_NOISE = 1E-3
 FINGER_TOUCHING_RADIUS = 0.07
 ZOOM_THRESHOLD = 0 #5E-4
-ZOOM_EPSILON = 0.005
+ZOOM_EPSILON = 0.01
 ZOOM_HARDNESS = 10
 
 ROTATION_SENSITIVITY = 1000
-ROTATION_EPSILON = 5e-3
+ROTATION_EPSILON = 1e-2
 ROTATION_HARDNESS = 4
 
-PANNING_EPSILON = 0.05
-PANNING_HARDNESS = 1
+PANNING_EPSILON = 0.1
+PANNING_HARDNESS = 4
 PANNING_SENSITIVITY = 2
 PANNING_Z_SENSITIVITY = 1.5
 ZOOM_SENSITIVITY = 0.1 # effectively how many loop iterations must be done (i.e. ms waited) to acheive zoom factor
@@ -236,6 +236,8 @@ try:
                         
                         display_message = "Panning & Zooming"
                         
+                        LR_diff = np.array(last_two_indexes_L) - np.array(last_two_indexes_R)
+
                         left_change = np.array(last_two_indexes_L[1]) - np.array(last_two_indexes_L[0])
                         right_change = np.array(last_two_indexes_R[1]) - np.array(last_two_indexes_R[0])
 
@@ -246,11 +248,12 @@ try:
                         change *= sigmoid(change, threshold=PANNING_EPSILON, hardness=PANNING_HARDNESS)
                         v.shift(PANNING_SENSITIVITY * change)
                         # Also use both hands to zoom:
-                        xy_change=(left_change[0:1] - right_change[0:1]).sum()
+                        xy_change=(LR_diff[1] - LR_diff[0])[0:1].sum()
+                        # (left_change[0:1] - right_change[0:1]).sum()
 
                         print(xy_change)
                         xy_change = xy_change * sigmoid(xy_change, threshold = ZOOM_EPSILON, hardness=ZOOM_HARDNESS)
-                        zoom_factor = (1 - xy_change) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
+                        zoom_factor = (1 + xy_change) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
                         new_zoom = new_zoom * zoom_factor
                         v.scale(new_zoom)
                         
@@ -306,7 +309,8 @@ try:
                 thumb_positions.clear() 
                 index_positions.clear()
                 last_two_indexes.clear()
-                new_zoom = 1
+                # new_zoom = 1
+                # Do not reset this^ b
                 pause_updates = True
             
             # Show vtk file and camera's image
