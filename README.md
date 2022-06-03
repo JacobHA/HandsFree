@@ -1,6 +1,6 @@
 # HandsFree
-STL manipulation with hands via camera
-
+*3D object manipulation with hands via camera*
+(Careful, the code is still very messy... refactoring in progress.)
 A simple demo (with SHOW_SELFIE = True):
 ![gif of demo](HandsFree-demo.gif)
 
