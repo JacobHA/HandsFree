@@ -24,12 +24,16 @@ These codebases power the bulk of this project.
     - Add a smoothing function
     - Fix the MIN_WAITING_FRAMES
     - Track both left and right hand openness separately
+- Ask user which camera to use:
+- Create a default settings/preferences file for python app
+
 - Add keyboard interaction
 - Add voice interaction
-- Create a dependency graph for the project. (At least a requirements.txt file)
-- Create an executable file
 - Clean up PyQT applications
-- Ask user which camera
-- Create a default settings file for QT app
-- Slice the object (for cross sectional views)
-- Interact with CAD files
+    - Create an executable file
+    - Create a default settings file for QT app
+- Interact with CAD (multi-object) files
+    - Allow for "pick and place" of parts
+- View cross-sections by using hand as slider and plane definer (WIP)
+
+- [x] Create a dependency graph for the project. (At least a requirements.txt file)
