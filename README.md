@@ -20,20 +20,21 @@ These codebases power the bulk of this project.
 
 # TODO:
 - Much refactoring + cleanup needed
-    - Separate the functions for zoom / pan / rotate / etc.
-    - Add a smoothing function
-    - Fix the MIN_WAITING_FRAMES
-    - Track both left and right hand openness separately
-- Ask user which camera to use:
-- Create a default settings/preferences file for python app
+    - [ ] Separate the functions for zoom / pan / rotate / etc.
+    - [ ] Add a smoothing function
+    - [ ] Fix the MIN_WAITING_FRAMES
+    - [ ] Track both left and right hand openness separately
+- [ ] Ask user which camera to use and save it (see next)
+- [ ] Create a default settings/preferences file for python app
 
-- Add keyboard interaction
-- Add voice interaction
+- [ ] Add keyboard interaction
+- [ ] Add voice interaction
 - Clean up PyQT applications
-    - Create an executable file
-    - Create a default settings file for QT app
+    - [ ] Create an executable file
+    - [ ] Create a default settings file for QT app
 - Interact with CAD (multi-object) files
-    - Allow for "pick and place" of parts
-- View cross-sections by using hand as slider and plane definer (WIP)
+    - [ ] Allow for "pick and place" of parts
+    - [ ] Use exploded view
+- [ ] View cross-sections by using hand as slider and plane definer (WIP)
 
 - [x] Create a dependency graph for the project. (At least a requirements.txt file)
