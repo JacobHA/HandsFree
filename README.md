@@ -20,6 +20,9 @@ These codebases power the bulk of this project.
 - https://google.github.io/mediapipe/
 -- MediaPipe was created by Google. Its main purpose is to perform pose estimation (hand, face, body, etc.) and process them with a set of computer vision algorithms. One great application of this is to detect hand gestures (there are several cool projects using it to "read" sign language).
 
+<a href="https://www.buymeacoffee.com/jadamczyk" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
+
 # TODO:
 - Much refactoring + cleanup needed
     - [ ] Zoom bug (two hands): zooming switches direction
