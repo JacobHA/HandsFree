@@ -184,6 +184,8 @@ try:
                         if hand_status[-MIN_WAITING_FRAMES:] == ['Both']*MIN_WAITING_FRAMES:
                             
                             display_message = "Panning & Zooming"
+                            obj.update_message(display_message)
+
                             # Extract the left and right hand from the two-hand data:
                             arr = np.array(last_N_indexes)
                             last_N_indexes_L = arr[:, 0, :]
@@ -216,6 +218,8 @@ try:
                             # index_pos = smooth(last_N_indexes, SMOOTHING_INTERVAL)*0.1# np.array(last_two_indexes).mean(axis=0)
 
                             display_message = "Rotating"
+                            obj.update_message(display_message)
+
                             indexes = np.array(last_N_indexes)# - np.array(last_two_indexes_R)
 
                             change_vector = indexes[1] - indexes[0]
