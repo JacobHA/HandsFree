@@ -1,5 +1,78 @@
 import numpy as np
 from google.protobuf.json_format import MessageToDict
+from vedo import *
+
+
+cam = dict(pos=(1,0,0), focalPoint=(0,0,0), viewup=(0,0,1))
+
+
+class ObjectDisplayer:
+    def __init__(self, filename, camera=cam, initial_msg='Firing up...', axes=4, init_scale=1):
+        self.filename = filename
+        self.axes = axes
+        self.init_scale = init_scale
+        self.camera = camera
+        self.object = Mesh(filename)
+        self.status_message = Text2D(initial_msg, pos="top-center", font=2, c='w', bg='b3', alpha=1)
+
+        self.initial_display()
+
+    # Display function
+    def show_object(self, new_object=None):
+        if new_object is None:
+            new_object = self.object
+
+        _ = show(new_object, self.status_message, axes=self.axes, viewup='z', camera=self.camera, interactive=False)
+
+
+    # Initial functions
+    def initial_rescale(self):
+        # Do fresh import of object
+        self.object = Mesh(self.filename)
+        model_size = self.object.averageSize()
+        self.object.scale(self.init_scale * model_size)
+        
+    def initial_display(self):
+        self.initial_rescale()
+        # self.initial_shift()
+        self.show_object()
+
+    # Update functions
+    def update_message(self, message):
+        self.status_message.text(message)
+        
+    def shift_object(self, shift_vector):
+        self.object.shift(shift_vector)
+        self.show_object()
+
+    def scale_object(self, scale):
+        self.object.scale(scale)
+        self.show_object()
+
+    def rotate_object(self, angle, axis, point=None):
+        if point is None:
+            point=self.object.centerOfMass()
+
+        self.object.rotate(angle=angle, axis=axis, point=point)
+        self.show_object()
+
+        
+# def init_show(STL_name, rescale, msg='', camera=cam):
+#     status_message = Text2D(msg, pos="top-center", font=2, c='w', bg='b3', alpha=1)
+
+#     v = Mesh(STL_name)
+#     avg_model_size = v.averageSize()
+#     v.scale(avg_model_size * rescale)
+
+#     # plt.show(v, status_message, camera = cam, interactive=False) 
+#     return v   
+    
+# def show_object(object, msg='', camera=cam):
+#     # status_message.text(msg)
+#     status_message = Text2D(msg, pos="top-center", font=2, c='w', bg='b3', alpha=1)
+
+#     _ = show(object, status_message, camera = camera, interactive=False)   
+
 
 def smooth(y, box_pts):
 
@@ -72,8 +145,8 @@ def display_top(snapshot, key_type='lineno', limit=3):
 def is_touching(distance, threshold):
     return distance < threshold
 
-def hand_open(open_tracking_list, wait_time):
-    return open_tracking_list == [True]*wait_time
+def hand_open(middle_tip, middle_palm):
+    return middle_tip[1] < middle_palm[1]
 
 def sigmoid(x, hardness=1, threshold=0):
     return 1 / (1 + np.exp(-hardness*(x-threshold)))
@@ -110,6 +183,7 @@ def data_collector(mediapipe_results, last_N_thumbs, last_N_indexes, last_N_midd
     if mediapipe_results.multi_hand_landmarks:
         hands_present = None
         display_message = None
+        open_status = None
 
         hand_detected = (MessageToDict(mediapipe_results.multi_handedness[0])['classification'][0]['label'])
         multihand_results = mediapipe_results.multi_hand_landmarks
@@ -118,7 +192,6 @@ def data_collector(mediapipe_results, last_N_thumbs, last_N_indexes, last_N_midd
         # First we need to check if the number of hands has switched. If so, we must
         # clear out the old list and restart (otherwise we will be concatenating
         # arrays of different shapes)
-
 
         arr = np.array(last_N_indexes)
         if len(arr.shape) == 2: # One hand is present (hand-time data, dimensions)
@@ -165,10 +238,22 @@ def data_collector(mediapipe_results, last_N_thumbs, last_N_indexes, last_N_midd
                     finger_positions_list[-1] = [finger_positions_list[-1], aux_list]
 
  
+        arr = np.array(last_N_indexes)
+        if len(arr.shape) == 2: # One hand is present (hand-time data, dimensions)
+            open_status = hand_open(last_N_middles[-1], last_N_middle_palms[-1])
 
-        # open_status = hand_open(middle_finger_open_list, MIN_WAITING_FRAMES))
-        open_status = None
+        elif len(arr.shape) == 3: # Two hands are present (hand-time data, hand_num, dimensions)
+            # Extract the left and right hand from the two-hand data:
+            _ = np.array(last_N_middles)
+            last_N_middles_L = _[-1, 0, :]
+            last_N_middles_R = _[-1, 1, :]
+            _ = np.array(last_N_middle_palms)
+            last_N_middle_palms_L = _[-1, 0, :]
+            last_N_middle_palms_R = _[-1, 1, :]
+            
+            open_status = [hand_open(last_N_mids, last_N_palms) for last_N_mids, last_N_palms in zip([last_N_middles_L, last_N_middles_R],[last_N_middle_palms_L, last_N_middle_palms_R])]
 
+        
         location_data = (last_N_thumbs, last_N_indexes, last_N_middles, last_N_middle_palms)
         return display_message, hands_present, open_status, location_data
 
