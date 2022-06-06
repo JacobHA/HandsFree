@@ -4,6 +4,9 @@
 A simple demo (with SHOW_SELFIE = True):
 ![gif of demo](HandsFree-demo.gif)
 
+<a href="https://www.buymeacoffee.com/jadamczyk" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
+
 # Dependencies
 - Mayavi
 - MediaPipe
@@ -18,7 +21,13 @@ These codebases power the bulk of this project.
 - https://google.github.io/mediapipe/
 -- MediaPipe was created by Google. Its main purpose is to perform pose estimation (hand, face, body, etc.) and process them with a set of computer vision algorithms. One great application of this is to detect hand gestures (there are several cool projects using it to "read" sign language).
 
-<a href="https://www.buymeacoffee.com/jadamczyk" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
+# Possible Example Applications:
+- Manipulating any 3D objects to understand them better (think: cell images, topographical models, asteroid data, etc.)
+- Medical Field: Practice with surgery (would be extremely crude!)
+- Games: (e.g. "Ping Pong" with a virtual table)
+- 3D Printing (my original use-case to examine files closely)
+- General Engineering: Helping to design and view CAD models
 
 
 # TODO:
