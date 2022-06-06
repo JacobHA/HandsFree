@@ -121,14 +121,35 @@ try:
 
                 # Display the image.
                 cv2.imshow('HandsFree Camera', image)
-                cv2.waitKey(1)
 
-
+            key_press = cv2.waitKey(1)
+        
             del image # this cuts down on memory by a lot; ~1200KB -> ~400KB !
 
             multihand_results = results.multi_hand_landmarks
 
             output = data_collector(results, last_N_thumbs, last_N_indexes, last_N_middles, last_N_middle_palms)
+
+            if key_press == ord('l'):
+                # Lock the object
+                obj.lock()
+                # TODO: clear all lists
+
+            if key_press == ord('r'):
+                # Reset the object
+                obj.initial_display()
+
+            if key_press == ord('q'):
+                # Quit
+                exit()
+
+            # if key_press == ord('s'):
+            #     # Toggle selfie mode
+            #     # TODO: some work needs done here to turn camera back on
+            #     # Close the camera window:
+            #     cv2.destroyWindow('HandsFree Camera')
+
+                
 
             if output is None:
                 display_message = 'No hands detected.'
