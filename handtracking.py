@@ -21,10 +21,12 @@ import traceback
 import tracemalloc
 import cv2
 import mediapipe as mp
-from time import sleep
 
 import numpy as np
-from utils import MaxSizeList, data_collector, read_index, display_top, is_stationary, sigmoid, ObjectDisplayer
+from utilities.data_utils import MaxSizeList, data_collector, is_stationary, sigmoid
+from utilities.vis_utils import ObjectDisplayer
+from utilities.settings_utils import read_index
+from utilities.memory_utils import display_top
 
 MEMORY_DEBUG = False
 
@@ -33,7 +35,7 @@ MAX_NUM_HANDS = 2
 MAX_TRACKING_TIME = 6
 SMOOTHING_INTERVAL = 1
 MIN_WAITING_FRAMES = 5
-PAUSE_FRAMES = 5
+PAUSE_FRAMES = 6
 
 assert SMOOTHING_INTERVAL <= MIN_WAITING_FRAMES
 
@@ -91,6 +93,9 @@ if MEMORY_DEBUG:
 
 camera_index = read_index('camera_index.txt')
 
+
+
+# Begin main loop of camera read-in, data processing, and object manipulation:
 try:        
     cap = cv2.VideoCapture(camera_index)
 
@@ -255,14 +260,12 @@ try:
                             normal_to_rotate = change_vector[1] * y_unit_vec + change_vector[0] * z_unit_vec
 
                             angle_to_rotate = np.linalg.norm(change_vector)
-                            # Apply a dampening factor so that small changes don't cause the camera to spin too fast:
+                            # Apply a damping factor so that small changes don't cause the camera to spin too fast:
                             angle_to_rotate = angle_to_rotate*sigmoid(angle_to_rotate, threshold = ROTATION_EPSILON, hardness=ROTATION_HARDNESS)
 
                             obj.rotate_object(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate)# v.pos())#[::-1]) #bc of axis weirdness
                             
-                            # plt.show(v, status_message, camera = cam, interactive=False) # important line!           
-                            # show_object(v, display_message)
-
+                            
             if MEMORY_DEBUG:
                 snapshot = tracemalloc.take_snapshot()
                 display_top(snapshot) 
@@ -278,5 +281,3 @@ except Exception as e:
 
 cap.release()
 cv2.destroyAllWindows()
-
-# interactive().close() # Not sure what this does..

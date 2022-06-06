@@ -23,6 +23,7 @@ These codebases power the bulk of this project.
 
 
 # Possible Example Applications:
+There are plenty of applications at the intersection of 3D visualization and computer vision. Here are a few that came to mind (add your own!):
 - Manipulating any 3D objects to understand them better (think: cell images, topographical models, asteroid data, etc.)
 - Medical Field: Practice with surgery (would be extremely crude!)
 - Games: (e.g. "Ping Pong" with a virtual table)
