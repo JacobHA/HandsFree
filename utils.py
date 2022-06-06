@@ -2,11 +2,8 @@ import numpy as np
 from google.protobuf.json_format import MessageToDict
 
 def smooth(y, box_pts):
-    # box = np.ones(box_pts)/box_pts
-    # y_smooth = np.convolve(y, box, mode='same')
-    # return y_smooth
+
     y=np.array(y)
-    # print(y)
     return np.array([np.convolve(y_i, np.ones(box_pts), 'valid') / box_pts for y_i in y.T])
 
 
@@ -112,10 +109,29 @@ def data_collector(mediapipe_results, last_N_thumbs, last_N_indexes, last_N_midd
     # First, ensure the results aren't empty, then proceed with data processing/parsing
     if mediapipe_results.multi_hand_landmarks:
         hands_present = None
+        display_message = None
 
         hand_detected = (MessageToDict(mediapipe_results.multi_handedness[0])['classification'][0]['label'])
         multihand_results = mediapipe_results.multi_hand_landmarks
         NUM_HANDS_PRESENT = len(multihand_results)
+
+        # First we need to check if the number of hands has switched. If so, we must
+        # clear out the old list and restart (otherwise we will be concatenating
+        # arrays of different shapes)
+
+
+        arr = np.array(last_N_indexes)
+        if len(arr.shape) == 2: # One hand is present (hand-time data, dimensions)
+            if NUM_HANDS_PRESENT != 1:
+                # Clear out all input arrays before proceeding with data collection:
+                for list_name in [last_N_thumbs, last_N_indexes, last_N_middles, last_N_middle_palms]:
+                    list_name.clear()
+
+        if len(arr.shape) == 3: # Two hands are present (hand-time data, hand_num, dimensions)
+            if NUM_HANDS_PRESENT != 2:
+                for list_name in [last_N_thumbs, last_N_indexes, last_N_middles, last_N_middle_palms]:
+                    list_name.clear()
+
 
         # keep track of (which) hands are present in the image frame
         if NUM_HANDS_PRESENT == 1:
@@ -127,7 +143,8 @@ def data_collector(mediapipe_results, last_N_thumbs, last_N_indexes, last_N_midd
             display_message = "Tracking Both Hands"
 
         else:
-            raise ValueError('More than 2 hands detected. This is not supported. Check the variable MAX_NUM_HANDS.')
+            print('More than 2 hands detected. This is not supported. Check the variable MAX_NUM_HANDS.')
+
 
         for hand_num, hand_landmarks in enumerate(multihand_results):
             # This will iterate over each hand 
@@ -150,16 +167,40 @@ def data_collector(mediapipe_results, last_N_thumbs, last_N_indexes, last_N_midd
  
 
         # open_status = hand_open(middle_finger_open_list, MIN_WAITING_FRAMES))
-        open_status=None
-        print(len(last_N_indexes))
+        open_status = None
+
         location_data = (last_N_thumbs, last_N_indexes, last_N_middles, last_N_middle_palms)
         return display_message, hands_present, open_status, location_data
 
     else:       # No hands detected
         return None
 
+def one_hand_is_stationary(last_N_pos, epsilon):
+    """ Very simple method to check if there has not been much movement recently. """
 
+    assert len(last_N_pos) >= 2, f"Length of last positions must be >= 2. Length: {len(last_N_pos)}."
+    pos_arr3d = np.array(last_N_pos).T # So that dimensions are indexed first
+    
+    stationary_dims = []
+    for dimension in pos_arr3d:
+        xi_stationary = (np.abs(np.gradient(dimension).mean()) < epsilon)
+        stationary_dims.append(xi_stationary)
+ 
+    return stationary_dims == [True]*3
 
+def is_stationary(last_N_pos, epsilon):
+    pos_arr3d = np.array(last_N_pos)
+    hands = len(pos_arr3d.shape) - 1
+    if hands == 2:
+        # Loop through each hand
+        last_N_L = pos_arr3d[:, 0, :]
+        last_N_R = pos_arr3d[:, 1, :]
+                    
+        return one_hand_is_stationary(last_N_L, epsilon), one_hand_is_stationary(last_N_R, epsilon)
+    elif hands == 1:
+        return one_hand_is_stationary(last_N_pos, epsilon)
+
+        
 
 
 

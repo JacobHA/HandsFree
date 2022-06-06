@@ -11,6 +11,7 @@ To Pan: Raise both hands, and move one (left/right has reversed controls)
 
 print(__doc__)
 
+import traceback
 import cv2
 import mediapipe as mp
 from vedo import *
@@ -23,7 +24,7 @@ MEMORY_DEBUG = False
 
 MAX_NUM_HANDS = 2
 
-MAX_TRACKING_TIME = 50
+MAX_TRACKING_TIME = 10
 SMOOTHING_INTERVAL = 3
 MIN_WAITING_FRAMES = 4
 
@@ -32,9 +33,13 @@ assert SMOOTHING_INTERVAL <= MIN_WAITING_FRAMES
 RESET_WAITING_FRAMES = 20
 EPSILON_NOISE = 1E-3
 FINGER_TOUCHING_RADIUS = 0.07
+MOTION_EPSILON = 0.0025
+PAUSE_FACTOR = 5
+
 ZOOM_THRESHOLD = 0 #5E-4
 ZOOM_EPSILON = 0.01
 ZOOM_HARDNESS = 10
+
 
 ROTATION_SENSITIVITY = 1000
 ROTATION_EPSILON = 1e-2
@@ -42,7 +47,7 @@ ROTATION_HARDNESS = 4
 
 PANNING_EPSILON = 0.1
 PANNING_HARDNESS = 4
-PANNING_SENSITIVITY = 4
+PANNING_SENSITIVITY = 2
 PANNING_Z_SENSITIVITY = 1.5
 ZOOM_SENSITIVITY = 0.1 # effectively how many loop iterations must be done (i.e. ms waited) to acheive zoom factor
 INITIAL_RESCALE = 0.00001
@@ -54,19 +59,14 @@ SHOW_SELFIE = True#False
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
 
-thumb_positions = MaxSizeList(MAX_TRACKING_TIME) 
-index_positions = MaxSizeList(MAX_TRACKING_TIME)
-middle_positions = MaxSizeList(MAX_TRACKING_TIME)
-middle_tip_vert_positions = MaxSizeList(MAX_TRACKING_TIME)
-middle_palm_vert_positions = MaxSizeList(MAX_TRACKING_TIME)
-middle_finger_open_list = MaxSizeList(MIN_WAITING_FRAMES)
 hand_status = MaxSizeList(MIN_WAITING_FRAMES)
 open_status = MaxSizeList(RESET_WAITING_FRAMES)
 
-last_N_thumbs = MaxSizeList(MIN_WAITING_FRAMES)
-last_N_indexes = MaxSizeList(MIN_WAITING_FRAMES)
-last_N_middles = MaxSizeList(MIN_WAITING_FRAMES)
-last_N_middle_palms = MaxSizeList(MIN_WAITING_FRAMES)
+last_N_thumbs = MaxSizeList(MAX_TRACKING_TIME)
+last_N_indexes = MaxSizeList(MAX_TRACKING_TIME)
+last_N_middles = MaxSizeList(MAX_TRACKING_TIME)
+last_N_middle_palms = MaxSizeList(MAX_TRACKING_TIME)
+N_paused = MaxSizeList(MAX_TRACKING_TIME * PAUSE_FACTOR)
 
 x_unit_vec = np.array([1, 0, 0])
 y_unit_vec = np.array([0, 1, 0])
@@ -139,7 +139,6 @@ try:
             multihand_results = results.multi_hand_landmarks
 
             output = data_collector(results, last_N_thumbs, last_N_indexes, last_N_middles, last_N_middle_palms)
-            print(hand_status)
 
             if output is None:
                 display_message = 'No hands detected.'
@@ -147,9 +146,10 @@ try:
                 # i.e. no hands detected
                 # CLear out the lists. This saves on memory and more importantly, 
                 # does not reference old positions when a hand re-appears
+                last_N_thumbs.clear()
                 last_N_indexes.clear()
-                thumb_positions.clear() 
-                index_positions.clear()
+                last_N_middles.clear()
+                last_N_middle_palms.clear()
                 
                 pause_updates = True
                 display_message = "Updates paused"
@@ -161,9 +161,27 @@ try:
                 display_message, hands_present, open_hands, location_data = output
                 last_N_thumbs, last_N_indexes, last_N_middles, last_N_middle_palms = location_data
                 hand_status.append(hands_present)
-
+                # print(hand_status)
+                # print(last_N_indexes)
+                # Check last_N_indexes to see if the hand(s) are stationary, meaning that we should pause:
+                
+                if len(last_N_indexes) > MIN_WAITING_FRAMES:
+                    x=is_stationary(last_N_indexes, MOTION_EPSILON)
+                    if np.all(x):
+                        N_paused.append(True)
+                        display_message = 'Pausing...'
+                        status_message.text(display_message)
+                        plt.show(v, status_message, camera = cam, interactive=False) # important line!           
+                        # Cheap way of pausing
+                        # time.sleep(1)
+                        hand_status += ['Paused']*MAX_TRACKING_TIME
+                        last_N_thumbs.clear()
+                        last_N_indexes.clear()
+                        last_N_middles.clear()
+                        last_N_middle_palms.clear()
+                        continue
                             
-                if hand_status == ['Both']*MIN_WAITING_FRAMES and len(last_N_indexes) == MIN_WAITING_FRAMES:
+                if hand_status[-MIN_WAITING_FRAMES:] == ['Both']*MIN_WAITING_FRAMES and len(last_N_indexes) >= MIN_WAITING_FRAMES:
                     
                     display_message = "Panning & Zooming"
                     # Extract the left and right hand from the two-hand data:
@@ -189,11 +207,14 @@ try:
                     zoom_factor = (1 + xy_change) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
                     zoom = zoom * zoom_factor
                     v.scale(zoom)
-                    
+                                   
+                    plt.show(v, status_message, camera = cam, interactive=False) # important line!           
+
 
                     
-                elif hand_status == ['Right']*MIN_WAITING_FRAMES and len(last_N_indexes) == MIN_WAITING_FRAMES:
-
+                elif hand_status[-MIN_WAITING_FRAMES:] == ['Right']*MIN_WAITING_FRAMES:# and len(last_N_indexes) >= MIN_WAITING_FRAMES:
+                    arr = np.array(last_N_indexes)
+                    print(arr.shape)
                     # Change zoom multiplier based on fingers distance changing (open/close thumb and index)
                     display_message = "Zooming"
                     index_pos = smooth(last_N_indexes, SMOOTHING_INTERVAL)# np.array(last_two_indexes).mean(axis=0)
@@ -205,10 +226,17 @@ try:
                     zoom *= ((1 + (last_two_thumb_index_dists[1] - last_two_thumb_index_dists[0]))) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
             
                     v.scale(zoom)
+                    
+                    plt.show(v, status_message, camera = cam, interactive=False) # important line!           
+
+                    
 
                 # TODO: incorporate open status
-                elif hand_status == ['Left']*MIN_WAITING_FRAMES and len(last_N_indexes) == MIN_WAITING_FRAMES:
+                elif hand_status[-MIN_WAITING_FRAMES:] == ['Left']*MIN_WAITING_FRAMES and len(last_N_indexes) >= MIN_WAITING_FRAMES:
                     # generate the last smoothed point
+                    # print('here')
+                    arr = np.array(last_N_indexes)
+                    print(arr.shape)
                     index_pos = smooth(last_N_indexes, SMOOTHING_INTERVAL)# np.array(last_two_indexes).mean(axis=0)
 
                     # Calculate rotation matrix and extract angles
@@ -225,6 +253,8 @@ try:
                     angle_to_rotate = angle_to_rotate*sigmoid(angle_to_rotate, threshold = ROTATION_EPSILON, hardness=ROTATION_HARDNESS)
 
                     v.rotate(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate, point=v.centerOfMass())# v.pos())#[::-1]) #bc of axis weirdness
+                    
+                    plt.show(v, status_message, camera = cam, interactive=False) # important line!           
 
                 elif open_status == [False]*RESET_WAITING_FRAMES:
                     display_message = "Resetting"
@@ -248,6 +278,8 @@ try:
 except Exception as e:
     # This enables the camera to be cleaned up if there are any errors
     print('Caught an exception: ' + str(e))
+    traceback.print_exc()
+
     cap.release()
     cv2.destroyAllWindows()
     pass
