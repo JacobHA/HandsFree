@@ -249,6 +249,8 @@ def data_collector(mediapipe_results, last_N_thumbs, last_N_indexes, last_N_midd
                     aux_list = [hand_landmarks.landmark[landmark_index].x, hand_landmarks.landmark[landmark_index].y, hand_landmarks.landmark[landmark_index].z]
 
                     finger_positions_list[-1] = [finger_positions_list[-1], aux_list]
+                    # if hand_detected == 'Left': #left hand was detected second, need to reverse the order of all arrays
+                    #     finger_positions_list = finger_positions_list[-1::]
 
  
         arr = np.array(last_N_indexes)
@@ -256,6 +258,7 @@ def data_collector(mediapipe_results, last_N_thumbs, last_N_indexes, last_N_midd
             open_status = hand_open(last_N_middles[-1], last_N_middle_palms[-1])
 
         elif len(arr.shape) == 3: # Two hands are present (hand-time data, hand_num, dimensions)
+            
             # Extract the left and right hand from the two-hand data:
             _ = np.array(last_N_middles)
             last_N_middles_L = _[-1, 0, :]

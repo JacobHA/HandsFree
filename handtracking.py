@@ -7,6 +7,12 @@ Created on Mon Aug  2 00:20:41 2021
 To Zoom: Pinch fingers (right hand)
 To Rotate: Set up an axis with first finger and thumb (left hand)
 To Pan: Raise both hands, and move one (left/right has reversed controls)
+
+Key Commands:
+    'q' - Quit the program
+    'r' - Reset to the initial viewing display
+    's' - Toggle selfie mode (Work in Progress)
+    'l' - Lock/Unlock the object
 """
 
 print(__doc__)
@@ -164,7 +170,8 @@ try:
                 
                 pause_updates = True
                 display_message = "Updates paused"
-                # status_message.text(display_message)
+                obj.update_message(display_message)
+                obj.show_object()
                 hand_status.append(None)
 
             else:
@@ -187,7 +194,7 @@ try:
                         else:
                             display_message = 'Pausing...'
                             obj.update_message(display_message)
-                            # obj.show_object(new_object = v, msg=display_message)
+                            obj.show_object()
 
                         hand_status += ['Paused']*MAX_TRACKING_TIME
                         paused.append(True)
@@ -212,7 +219,7 @@ try:
                             last_N_indexes_L = arr[:, 0, :]
                             last_N_indexes_R = arr[:, 1, :]
                             
-                            LR_diff = np.array(last_N_indexes_L) - np.array(last_N_indexes_R)
+                            LR_diff = np.abs(np.array(last_N_indexes_L) - np.array(last_N_indexes_R))
 
                             left_change = np.array(last_N_indexes_L[1]) - np.array(last_N_indexes_L[0])
                             right_change = np.array(last_N_indexes_R[1]) - np.array(last_N_indexes_R[0])
