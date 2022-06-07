@@ -36,12 +36,13 @@ There are plenty of applications at the intersection of 3D visualization and com
     - [x] Zoom bug (two hands): zooming switches direction - b/c it cannot tell which hand was detected first.. need to order so consistently L then R - I instead just took absolute value in correct place
     - [x] Zoom bug: ensure object stays centered while zooming
     - [x] Two hand bug: two hands at first does not work
-    - [ ] Separate out the functions for zoom / pan / rotate / etc.
+    - [x] Separate out the functions for zoom / pan / rotate / etc.
     - [x] Add a smoothing function
     - [x] Fix the MIN_WAITING_FRAMES
     - [x] Track both left and right hand openness separately
 - [x] Ask user which camera to use and save it (see next)
 - [ ] Create a default settings/preferences file for python app
+- [ ] Can include background colors and all constants (^)
 
 - [x] Add keyboard interaction
 - [ ] Allow toggling between selfie and no selfie mode (currently only disabling works)

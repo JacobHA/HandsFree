@@ -24,7 +24,7 @@ import mediapipe as mp
 
 import numpy as np
 from utilities.data_utils import MaxSizeList, data_collector, is_stationary, sigmoid
-from utilities.vis_utils import ObjectDisplayer
+from utilities.vis_utils import DisplayScene, ManipulableObject
 from utilities.settings_utils import read_index
 from utilities.memory_utils import display_top
 
@@ -35,7 +35,7 @@ MAX_NUM_HANDS = 2
 MAX_TRACKING_TIME = 6
 SMOOTHING_INTERVAL = 1
 MIN_WAITING_FRAMES = 5
-PAUSE_FRAMES = 6
+PAUSE_FRAMES = 7
 
 assert SMOOTHING_INTERVAL <= MIN_WAITING_FRAMES
 
@@ -81,10 +81,61 @@ z_unit_vec = np.array([0, 0, 1])
 
 #TODO: Make a camera clean up function
 
+# """Create a Volume from a numpy.mgrid"""
+# import numpy as np
+# from vedo import Volume, Text2D, show
+
+
+# import scipy.io as spio
+# import vtk
+
+# phall = spio.loadmat(r'C:\Users\jacob\OneDrive\Desktop\Cancer Biophysics\phall.mat')['PHALLOIDIN_IMG']
+# dapi = spio.loadmat(r'C:\Users\jacob\OneDrive\Desktop\Cancer Biophysics\dapi.mat')['DAPI_IMG']
+
+# phall[phall <= 4] = 0
+# # phall_max = np.where(phall <= 20)[0].max()
+# # phall[phall >= 20] = phall_max
+
+# dapi[dapi <= 15] = 0
+# # dapi_max = np.where(phall <= 200)[0].max()
+# # dapi[dapi >= 200] = dapi_max
+
+
+# import vtk.util.numpy_support as numpy_support
+
+
+# # Stretch out z axis:
+
+# X, Y, Z = np.mgrid[:512, :512, :10]
+# # Distance from the center at (15, 15, 15)
+# # scalar_field = ((X-15)**2 + (Y-15)**2 + (Z-15)**2) /225
+# scalar_field1 = phall[X,Y,Z]
+# scalar_field2 = dapi[X,Y,Z]
+
+# vol1 = Volume(scalar_field1, mapper='smart',spacing=(2.5,0.176,0.176))#, mapper='smart')#,mode=1)
+# vol2 = Volume(scalar_field2, mapper='smart',spacing=(2.5,0.176,0.176))#, mapper='smart')#,mode=1)
+
+# # Combine the two volume objects
+# # vol = vol1.boolean("+", vol2).flat()#.addScalarBar()
+
+# print(vol1.bounds())
+# print(vol1)
+
+
 STL_name = r'A.stl'
 
 # Create the displayer:
-obj = ObjectDisplayer(STL_name, init_scale=INITIAL_RESCALE)
+# obj = ObjectDisplayer([vol1,vol2], init_scale=INITIAL_RESCALE)
+# Create the scene for objects to live in:
+scene = DisplayScene()
+
+# Add an object, the stl file:
+stl_object = ManipulableObject(filename=STL_name, initial_scale=INITIAL_RESCALE)
+hollow_cube = ManipulableObject(filename=r'hollow_cube.stl', initial_scale=INITIAL_RESCALE)
+# scene.add_object(stl_object)
+scene.add_object(hollow_cube)
+scene.display_objects()
+
 
 image = None
 
@@ -142,13 +193,17 @@ try:
             output = data_collector(results, last_N_thumbs, last_N_indexes, last_N_middles, last_N_middle_palms)
 
             if key_press == ord('l'):
-                # Lock the object
-                obj.lock()
+                # Lock/unlock all the objects
+                for object in scene.objects:
+                    object.swap_lock()
+                scene.display_objects()
                 # TODO: clear all lists
 
             if key_press == ord('r'):
                 # Reset the object
-                obj.initial_display()
+                stl_object.initial_setup()
+                hollow_cube.initial_setup()
+                scene.display_objects()
 
             if key_press == ord('q'):
                 # Quit
@@ -159,6 +214,9 @@ try:
             #     # TODO: some work needs done here to turn camera back on
             #     # Close the camera window:
             #     cv2.destroyWindow('HandsFree Camera')
+
+            # if key_press == ord('p'):
+            #     # Precision mode
 
                 
 
@@ -175,8 +233,8 @@ try:
                 
                 pause_updates = True
                 display_message = "Updates paused"
-                obj.update_message(display_message)
-                obj.show_object()
+                scene.update_message(display_message)
+                scene.display_objects()
                 hand_status.append(None)
 
             else:
@@ -193,13 +251,13 @@ try:
                         if both_hands_closed:
                             
                             display_message = 'Resetting...'
-                            obj.update_message(display_message)
-                            obj.initial_display() 
+                            scene.update_message(display_message)
+                            scene.initial_display() 
                             
                         else:
                             display_message = 'Pausing...'
-                            obj.update_message(display_message)
-                            obj.show_object()
+                            scene.update_message(display_message)
+                            scene.display_objects()
 
                         hand_status += ['Paused']*MAX_TRACKING_TIME
                         paused.append(True)
@@ -212,12 +270,12 @@ try:
                         paused.append(False)
                         
 
-                    if not np.all(paused):
+                    if not np.all(paused) and not np.all([obj.is_locked for obj in scene.objects]) and len(hand_status) >= MIN_WAITING_FRAMES:
                                 
                         if hand_status[-MIN_WAITING_FRAMES:] == ['Both']*MIN_WAITING_FRAMES:
                             
                             display_message = "Panning & Zooming"
-                            obj.update_message(display_message)
+                            scene.update_message(display_message)
 
                             # Extract the left and right hand from the two-hand data:
                             arr = np.array(last_N_indexes)
@@ -234,7 +292,9 @@ try:
                             # index_change[2] = 0 # set z-axis change to zero            
                             # First check that fingers are not closed: i.e. that we do not want any action
                             change *= sigmoid(change, threshold=PANNING_EPSILON, hardness=PANNING_HARDNESS)
-                            obj.shift_object(PANNING_SENSITIVITY * change)
+                            
+                            for object in scene.objects:
+                                object.shift_object(PANNING_SENSITIVITY * change)
 
                             # Also use both hands to zoom:
                             xy_change=(LR_diff[1] - LR_diff[0])[0:1].sum()
@@ -242,7 +302,10 @@ try:
                             xy_change *= sigmoid(xy_change, threshold = ZOOM_EPSILON, hardness=ZOOM_HARDNESS)
                             zoom_factor = (1 + xy_change) ** (1/ZOOM_SENSITIVITY) # outer plus sign bc pinch out means zoom in
                             zoom = zoom * zoom_factor
-                            obj.scale_object(zoom)
+
+                            for object in scene.objects:
+                                object.scale_object(zoom)
+                            # scene.assembly.scale_object(zoom)
                                         
 
                         elif hand_status[-MIN_WAITING_FRAMES:] == ['Left']*MIN_WAITING_FRAMES:# and len(last_N_indexes) >= MIN_WAITING_FRAMES:
@@ -251,7 +314,7 @@ try:
                             # index_pos = smooth(last_N_indexes, SMOOTHING_INTERVAL)*0.1# np.array(last_two_indexes).mean(axis=0)
 
                             display_message = "Rotating"
-                            obj.update_message(display_message)
+                            scene.update_message(display_message)
 
                             indexes = np.array(last_N_indexes)# - np.array(last_two_indexes_R)
 
@@ -263,8 +326,28 @@ try:
                             # Apply a damping factor so that small changes don't cause the camera to spin too fast:
                             angle_to_rotate = angle_to_rotate*sigmoid(angle_to_rotate, threshold = ROTATION_EPSILON, hardness=ROTATION_HARDNESS)
 
-                            obj.rotate_object(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate)# v.pos())#[::-1]) #bc of axis weirdness
-                            
+                            for object in scene.objects:
+                                object.rotate_object(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate)# v.pos())#[::-1]) #bc of axis weirdness
+                            # scene.assembly.rotate_object(angle = angle_to_rotate*ROTATION_SENSITIVITY, axis = normal_to_rotate)# v.pos())#[::-1]) #bc of axis weirdness
+                        
+                        elif hand_status[-MIN_WAITING_FRAMES:] == ['Right']*MIN_WAITING_FRAMES and len(last_N_indexes) >= MIN_WAITING_FRAMES:
+                            arr = np.array(last_N_indexes)[-2] - np.array(last_N_indexes)[-1]
+                            arr = -np.array([0, arr[0], -arr[1]]) #location of index finger
+
+
+                            # scene.show_cross_section()
+
+                        #     scene.show_selector(0.5 * arr)
+                        #     # print(np.linalg.norm(arr))
+                        #     if np.linalg.norm(arr) < 0.005: # Thumb is touching index
+                        #         scene.select_object() # change to mean bw thumb and index
+                        #     else:
+                        #         for obj in scene.objects:
+                        #             obj.unlock()
+
+                        # scene.remove_selector()
+                        scene.display_objects()
+
                             
             if MEMORY_DEBUG:
                 snapshot = tracemalloc.take_snapshot()

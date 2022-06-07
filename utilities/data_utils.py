@@ -143,3 +143,24 @@ def hand_open(middle_tip, middle_palm):
 
 def sigmoid(x, hardness=1, threshold=0):
     return 1 / (1 + np.exp(-hardness*(x-threshold)))
+
+def column_bounds(A):
+    # Get column min and max for each column of input array A
+    # Returns a list of tuples, one for each column
+    A = np.array(A)
+    return [(A[:,i].min(), A[:,i].max()) for i in range(A.shape[1])]
+
+def is_within(bounding_box, vector):
+    # bounding_box = np.array(bounding_box).reshape(3,2)
+    _, bbox_y, bbox_z = column_bounds(bounding_box)
+    print(bbox_y)
+    print(bbox_z)
+    bbox_z0, bbox_z1 = bbox_z
+    bbox_y0, bbox_y1 = bbox_y
+ 
+    _, y, z = vector
+    print(y)
+    print(z)
+    return (y > bbox_y0) and (y < bbox_y1) and (z > bbox_z0) and (z < bbox_z1)
+
+#TODO: Add a function that translates between hand coordinates and vedo coordinates
