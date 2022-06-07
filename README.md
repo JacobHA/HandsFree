@@ -32,6 +32,12 @@ There are plenty of applications at the intersection of 3D visualization and com
 
 
 # TODO:
+Currently working on:
+- [ ] Allowing multiple objects to be rendered
+- [ ] Selection of individual objects
+- [ ] Slicing with plane
+
+Other things that must be done:
 - Much refactoring + cleanup needed
     - [x] Zoom bug (two hands): zooming switches direction - b/c it cannot tell which hand was detected first.. need to order so consistently L then R - I instead just took absolute value in correct place
     - [x] Zoom bug: ensure object stays centered while zooming
